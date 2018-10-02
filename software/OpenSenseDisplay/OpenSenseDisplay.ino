@@ -1,94 +1,201 @@
-
 #include <ESP8266WiFi.h>
-#include <GxEPD.h>
-#include <GxGDEW075T8/GxGDEW075T8.cpp>
-#include <GxIO/GxIO_SPI/GxIO_SPI.cpp>
-#include <GxIO/GxIO.cpp>
+#include <WiFiClientSecure.h>
+#include <GxEPD2_BW.h>
+#include <GxEPD2_3C.h>
+#include <Fonts/FreeMonoBold9pt7b.h>
 #include <Fonts/FreeMonoBold24pt7b.h>
-#include "pf_tempesta_seven5pt7b.h"
+#include "Dialog_plain_7.h"
 //#include "Chart.h"
 #include <ArduinoJson.h>
+#include <time.h>
+//#include <EEPROM.h>
 
-// SPI pin definition 
+#define EPD_CS SS
+
+// can use only half buffer size
+GxEPD2_BW < GxEPD2_750, GxEPD2_750::HEIGHT / 2 > display(GxEPD2_750(/*CS=15*/ SS, /*DC=4*/ 4, /*RST=5*/ 5, /*BUSY=16*/ 16));
+
+struct tm tm;
+
+// SPI pin definition
 #define CS_PIN           15
 #define RST_PIN          5
 #define DC_PIN           4
 #define BUSY_PIN         16
 
-GxIO_Class io(SPI, CS_PIN, DC_PIN, RST_PIN);
-GxEPD_Class display(io, RST_PIN, BUSY_PIN);
-
-char wlanssid[35] = "vogtland.freifunk.net";
-char wlanpwd[65] = "";
+const char* ssid     = "blacky_nomap";
+const char* password = "SaltAndPepper101";
+//const char* ssid     = "vogtland.freifunk.net";
+//const char* password = "";
 
 String esp_chipid;
 
+const char* host = "api.opensensemap.org";
+const int httpsPort = 443;
+
 void setup() {
-  
-  #if defined(ESP8266)
-    esp_chipid = String(ESP.getChipId());
-  #endif
 
   Serial.begin(115200);
-  delay(10);
+  Serial.setTimeout(2000);
 
-  display.init();
-  
-  debug_out(F("\nChipId: "), DEBUG_MIN_INFO, 0);
-  debug_out(esp_chipid, DEBUG_MIN_INFO, 1);
+  // Wait for serial to initialize.
+  while (!Serial) { }
 
-  display_debug(F("Connecting to"), String(wlanssid));
+  // set the watch dog timer to 4min, because the display needs some time to update
+  ESP.wdtEnable(240000);
+
+#if defined(ESP8266)
+  esp_chipid = String(ESP.getChipId());
+#endif
+
+
+
+  //  debug_out(F("\nChipId: "), DEBUG_MIN_INFO, 0);
+  //  debug_out(esp_chipid, DEBUG_MIN_INFO, 1);
+
+  //  display_debug(F("Connecting to"), String(wlanssid));
   connectWifi();            // Start ConnectWifi
 
-  const GFXfont* f = &FreeMonoBold24pt7b;
 
-  //display.setRotation(45);
-  display.setFont(f);
-  display.setTextColor(GxEPD_BLACK);
-  display.fillRect(0, 0, 200, 200, GxEPD_WHITE);
 
-  display.setCursor(10, 100);
-  display.print("Hello World!");
+}
 
-  // 640 x 384
-  display.drawLine(0, 0, 639, 0, GxEPD_BLACK);
-  display.drawLine(639, 0, 639, 383, GxEPD_BLACK);
-  display.drawLine(639, 383, 0, 383, GxEPD_BLACK);
-  display.drawLine(0, 383, 0, 0, GxEPD_BLACK);
+const char* updatedAt;
+const char* sensors2_lastMeasurement_value;
+const char* sensors2_unit;
 
-  display.update();
+void loop() {
 
-  Serial.println("done");
+  fetchSensorInfo();
+
+  Serial.println(F("done"));
+
+  Serial.println(F("drawIntoScreen..."));
+
+  drawIntoScreen();
+
+  Serial.println(F("done"));     
+
+  Serial.println(F("Going to sleep now"));
 
   
-  // Connect to HTTP server
-  HTTPClient client;
+  //WiFi.forceSleepBegin(); // power down WiFi
+  //delay(2000); // wait some time to have EPD settled
 
-  client.begin("https://api.opensensemap.org/boxes/5b28d3891fef04001bd7dfae");
+  // Turn the WiFi off before we sleep
+  //WiFi.mode(WIFI_OFF);
+  //WiFi.forceSleepBegin();
 
-  int httpCode = client.GET();
+  wdt_reset(); // nodemcu is alive
+  yield();
+  delay(1000 * 60 * 5);
+}
 
-  String payload;
 
-  if (httpCode == HTTP_CODE_OK) {
-    payload = client.getString();
-  } else {
-    Serial.printf("[HTTP] GET... failed, error: %s\n", client.errorToString(httpCode).c_str());
+/*****************************************************************
+  /* Debug output                                                  *
+  /*****************************************************************/
+void debug_out(const String& text, const int level, const bool linebreak) {
+  //  if (level <= debug) {
+  //    if (linebreak) {
+  //      Serial.println(text);
+  //    } else {
+  //      Serial.print(text);
+  //    }
+  //  }
+}
 
-    Serial.println("Going to sleep now");
-    esp_deep_sleep_start();
+void drawIntoScreen() {
+  /*
+    const size_t chartBufferSize = 2 * JSON_ARRAY_SIZE(12) + JSON_OBJECT_SIZE(2) + 120;
+    DynamicJsonBuffer chartJsonBuffer(chartBufferSize);
+
+    const char* chartJson = "{\"dataset\":[122,65,80,84],\"labels\":[\"Jan\",\"Feb\",\"Mar\",\"Apr\"]}";
+
+    JsonObject& chartData = chartJsonBuffer.parseObject(chartJson);
+
+    JsonArray& dataset = chartData["dataset"];
+    JsonArray& labels = chartData["labels"];
+
+    uint16_t xPadding = 30;
+    uint16_t yPadding = 30;
+
+    uint16_t height = 200;
+    uint16_t width = 200;
+  */
+
+  /*
+    chart.draw(
+       xPadding,
+       yPadding,
+       height,
+       width,
+       dataset,
+       labels)
+    ;
+  */
+
+  wdt_reset(); // nodemcu is alive
+  yield();
+
+  Serial.println(F("display init"));
+  
+  display.init(115200);
+
+  wdt_reset(); // nodemcu is alive
+  yield();
+
+  display.setRotation(0);
+  display.setFont(&Dialog_plain_7);
+  display.setTextColor(GxEPD_BLACK);
+  
+  uint16_t x = (display.width() - 160) / 2;
+  uint16_t y = display.height() / 2;
+  
+  display.setFullWindow();
+  display.firstPage();
+  do
+  {
+    display.fillScreen(GxEPD_WHITE);
+
+    display.drawLine(20, 200, 619, 200, GxEPD_BLACK);
+    display.drawLine(249, 20, 249, 160, GxEPD_BLACK);
+    display.drawLine(459, 20, 459, 160, GxEPD_BLACK);
+  
+  
+    strptime(updatedAt, "%Y-%m-%dT%H:%M:%S.%fZ", &tm);
+  
+    char dateTime[20];
+  
+    strftime(dateTime, 20, "%d.%m.%Y | %H:%m", &tm);
+  
+    display.setCursor(10, 10);
+    display.print("zuletzt aktualisiert: " + String(dateTime));
+  
+    display.setFont(&FreeMonoBold24pt7b);
+  
+    display.setCursor(100, 100);
+    display.print(String(sensors2_lastMeasurement_value));
+    display.print(" ");
+    display.print(String(sensors2_unit));
   }
+  while (display.nextPage());
+}
 
-  client.end();
+void fetchSensorInfo() {
 
-  const size_t bufferSize = JSON_ARRAY_SIZE(1) + 2 * JSON_ARRAY_SIZE(3) + JSON_ARRAY_SIZE(5) + 6 * JSON_OBJECT_SIZE(2) + 2 * JSON_OBJECT_SIZE(3) + 5 * JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(12) + 1490;
-  DynamicJsonBuffer jsonBuffer(bufferSize);
+  JsonObject& root = fetchSensorInfoAsObject();
 
-  JsonObject& root = jsonBuffer.parseObject(payload);
+  wdt_reset(); // nodemcu is alive
+  yield();
+
+  Serial.println(F("parsing done"));
+
+  Serial.println(F("prepare JSON object"));
 
   const char* _id = root["_id"]; // "5b28d3891fef04001bd7dfae"
   const char* createdAt = root["createdAt"]; // "2018-06-19T09:57:29.237Z"
-  const char* updatedAt = root["updatedAt"]; // "2018-06-24T20:20:00.848Z"
+  updatedAt = root["updatedAt"]; // "2018-06-24T20:20:00.848Z"
   const char* name = root["name"]; // "PL-Raedel7-airRohr"
 
   JsonObject& currentLocation = root["currentLocation"];
@@ -128,12 +235,12 @@ void setup() {
 
   JsonObject& sensors2 = sensors[2];
   const char* sensors2_title = sensors2["title"]; // "Temperatur"
-  const char* sensors2_unit = sensors2["unit"]; // "°C"
+  sensors2_unit = sensors2["unit"]; // "°C"
   const char* sensors2_sensorType = sensors2["sensorType"]; // "DHT22"
   const char* sensors2_icon = sensors2["icon"]; // "osem-thermometer"
   const char* sensors2__id = sensors2["_id"]; // "5b28d3891fef04001bd7dfb0"
 
-  const char* sensors2_lastMeasurement_value = sensors2["lastMeasurement"]["value"]; // "13.90"
+  sensors2_lastMeasurement_value = sensors2["lastMeasurement"]["value"]; // "13.90"
   const char* sensors2_lastMeasurement_createdAt = sensors2["lastMeasurement"]["createdAt"]; // "2018-06-24T20:20:00.843Z"
 
   JsonObject& sensors3 = sensors[3];
@@ -161,101 +268,159 @@ void setup() {
   const char* loc0_geometry_type = loc0_geometry["type"]; // "Point"
 
   const char* loc0_type = root["loc"][0]["type"]; // "Feature"
-
-  //display.setCursor(10, 10);
-  //display.print("zuletzt aktualisiert: " + String(updatedAt));
-
-
-  //display.setFont(&FreeMonoBold24pt7b);
-  //
-  //display.setCursor(10, 10);
-  //display.print(sensors2_lastMeasurement_value);
-  //display.print(sensors2_unit);
-
-
-
-  const size_t chartBufferSize = 2 * JSON_ARRAY_SIZE(12) + JSON_OBJECT_SIZE(2) + 120;
-  DynamicJsonBuffer chartJsonBuffer(chartBufferSize);
-
-  const char* chartJson = "{\"dataset\":[122,65,80,84],\"labels\":[\"Jan\",\"Feb\",\"Mar\",\"Apr\"]}";
-
-  JsonObject& chartData = chartJsonBuffer.parseObject(chartJson);
-
-  JsonArray& dataset = chartData["dataset"];
-  JsonArray& labels = chartData["labels"];
-
-  uint16_t xPadding = 30;
-  uint16_t yPadding = 30;
-
-  uint16_t height = 200;
-  uint16_t width = 200;
-
-/*
-  chart.draw(
-     xPadding,
-     yPadding,
-     height,
-     width,
-     dataset,
-     labels)
-  ;
-*/
-  display.update();
-
-  Serial.println("Going to sleep now");
-
 }
 
-void loop() {
-  // put your main code here, to run repeatedly:
+void connectWifi() {
+  
+  #ifdef RE_INIT_NEEDED
+    WiFi.persistent(true);
+    WiFi.mode(WIFI_STA); // switch off AP
+    WiFi.setAutoConnect(true);
+    WiFi.setAutoReconnect(true);
+    WiFi.disconnect();
+  #endif
 
-}
-
-
-/*****************************************************************
-/* Debug output                                                  *
-/*****************************************************************/
-void debug_out(const String& text, const int level, const bool linebreak) {
-  if (level <= debug) {
-    if (linebreak) {
-      Serial.println(text);
-    } else {
-      Serial.print(text);
+  if (!WiFi.getAutoConnect() || ( WiFi.getMode() != WIFI_STA) || (WiFi.SSID() != ssid))
+  {
+    Serial.println();
+    Serial.print("WiFi.getAutoConnect()=");
+    Serial.println(WiFi.getAutoConnect());
+    Serial.print("WiFi.SSID()=");
+    Serial.println(WiFi.SSID());
+    WiFi.mode(WIFI_STA); // switch off AP
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
+    WiFi.begin(ssid, password);
+  }
+  int ConnectTimeout = 30; // seconds
+  
+  //int retry_count = 0;
+  //while ((WiFi.status() != WL_CONNECTED) && (retry_count < 40)) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    delay(500);
+    Serial.print(".");
+    Serial.print(WiFi.status());
+    if (--ConnectTimeout <= 0)
+    {
+      Serial.println();
+      Serial.println("WiFi connect timeout");
+      return;
     }
   }
+  Serial.println();
+  Serial.println("WiFi connected");
+
+  // Print the IP address
+  Serial.println(WiFi.localIP());
 }
 
-/*****************************************************************
-/* WiFi auto connecting script                                   *
-/*****************************************************************/
-void connectWifi() {
-  int retry_count = 0;
-  
-  debug_out(String(WiFi.status()), DEBUG_MIN_INFO, 1);
-  
-  WiFi.disconnect();
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(wlanssid, wlanpwd); // Start WiFI
+JsonObject& fetchSensorInfoAsObject() {
 
-  debug_out(F("Connecting to "), DEBUG_MIN_INFO, 0);
-  debug_out(wlanssid, DEBUG_MIN_INFO, 1);
-
-  while ((WiFi.status() != WL_CONNECTED) && (retry_count < 40)) {
-    delay(500);
-    debug_out(".", DEBUG_MIN_INFO, 0);
-    retry_count++;
+  // Connect to HTTPS server
+  WiFiClientSecure client;
+  Serial.print(F("connecting to "));
+  Serial.println(host);
+  if (!client.connect(host, httpsPort)) {
+    Serial.println(F("connection failed"));
   }
-  
-  debug_out(F("WiFi connected\nIP address: "), DEBUG_MIN_INFO, 0);
-  debug_out(IPAddress2String(WiFi.localIP()), DEBUG_MIN_INFO, 1);
+
+  wdt_reset(); // nodemcu is alive
+  yield();
+
+  String url = F("/boxes/5b28d3891fef04001bd7dfae");
+  Serial.print(F("requesting URL: "));
+  Serial.println(url);
+
+  wdt_reset(); // nodemcu is alive
+  yield();
+
+  // Make a HTTP request:
+  client.print(F("GET "));
+  client.print(url);
+  client.print(F(" HTTP/1.0"));
+  client.println();
+
+  client.print(F("Host: "));
+  client.print(host);
+  client.println();
+
+  client.println(F("User-Agent: OpenSenseDisplay"));
+  client.println(F("Connection: close"));
+  if (client.println() == 0) {
+    Serial.println(F("Failed to send request"));
+  }
+
+  // Check HTTP status
+  char status[32] = {0};
+  client.readBytesUntil('\r', status, sizeof(status));
+  if (strcmp(status, "HTTP/1.1 200 OK") != 0) {
+    Serial.print(F("Unexpected response: "));
+    Serial.println(status);
+  }
+
+  // Skip HTTP headers
+  char endOfHeaders[] = "\r\n\r\n";
+  if (!client.find(endOfHeaders)) {
+    Serial.println(F("Invalid response"));
+  }
+
+  wdt_reset(); // nodemcu is alive
+  yield();
+
+  /*
+    String payload;
+
+    if (httpCode == HTTP_CODE_OK) {
+    payload = client.getString();
+    } else {
+    Serial.println(httpCode);
+    Serial.printf("[HTTP] GET... failed, error: %s\n", client.errorToString(httpCode).c_str());
+
+    //    Serial.println("Going to sleep now");
+    //    esp_deep_sleep_start();
+    }
+
+    client.end();
+  */
+
+  Serial.print(F("free heap: "));
+  Serial.println(ESP.getFreeHeap());
+
+  Serial.println(F("parsing response"));
+
+  // Allocate JsonBuffer
+  // Use arduinojson.org/assistant to compute the capacity.
+  const size_t bufferSize = JSON_ARRAY_SIZE(1) + 2 * JSON_ARRAY_SIZE(3) + JSON_ARRAY_SIZE(5) + 6 * JSON_OBJECT_SIZE(2) + 2 * JSON_OBJECT_SIZE(3) + 5 * JSON_OBJECT_SIZE(6) + JSON_OBJECT_SIZE(12) + 1490;
+  DynamicJsonBuffer jsonBuffer(bufferSize);
+  //StaticJsonBuffer<2585> jsonBuffer;
+
+  wdt_reset(); // nodemcu is alive
+  yield();
+
+  Serial.print(F("free heap: "));
+  Serial.println(ESP.getFreeHeap());
+
+  JsonObject& root = jsonBuffer.parseObject(client);
+
+  wdt_reset(); // nodemcu is alive
+  yield();
+
+  client.stop();
+
+  wdt_reset(); // nodemcu is alive
+  yield();
+
+  if (!root.success()) {
+    Serial.println(F("Parsing failed!"));
+  }
+
+  return root;
 }
 
-
-/*****************************************************************
-/* IPAddress to String                                           *
-/*****************************************************************/
 String IPAddress2String(const IPAddress& ipaddress) {
   char myIpString[24];
   sprintf(myIpString, "%d.%d.%d.%d", ipaddress[0], ipaddress[1], ipaddress[2], ipaddress[3]);
   return String(myIpString);
 }
+
