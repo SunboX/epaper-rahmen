@@ -1,0 +1,73 @@
+@font-face {
+  font-family: 'LED-20';
+  src:
+    url('fonts/LED-20.ttf?1gv7qi') format('truetype'),
+    url('fonts/LED-20.woff?1gv7qi') format('woff'),
+    url('fonts/LED-20.svg?1gv7qi#LED-20') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+
+[class^="led-20-"], [class*=" led-20-"] {
+  /* use !important to prevent issues with browser extensions that change fonts */
+  font-family: 'LED-20' !important;
+  speak: none;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+
+  /* Better Font Rendering =========== */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.led-20-uniE900:before {
+  content: "\b0";
+}
+.led-20-F:before {
+  content: "\46";
+}
+.led-20-C:before {
+  content: "\43";
+}
+.led-20-9:before {
+  content: "\39";
+}
+.led-20-8:before {
+  content: "\38";
+}
+.led-20-7:before {
+  content: "\37";
+}
+.led-20-6:before {
+  content: "\36";
+}
+.led-20-5:before {
+  content: "\35";
+}
+.led-20-4:before {
+  content: "\34";
+}
+.led-20-3:before {
+  content: "\33";
+}
+.led-20-2:before {
+  content: "\32";
+}
+.led-20-1:before {
+  content: "\31";
+}
+.led-20-0:before {
+  content: "\30";
+}
+.led-20-dot:before {
+  content: "\2e";
+}
+.led-20-10:before {
+  content: "\2c";
+}
+.led-20-11:before {
+  content: "\2c";
+}
