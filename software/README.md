@@ -4,6 +4,7 @@
 * Adafruit GFX Library
 * ArduinoJson
 * U8g2
+* U8g2_for_Adafruit_GFX
 * GxEPD2
 
 ## JSON tools
