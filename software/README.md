@@ -1,4 +1,11 @@
 
+## Libraries
+
+* Adafruit GFX Library
+* ArduinoJson
+* U8g2
+* GxEPD2
+
 ## JSON tools
 
 https://arduinojson.org/v5/assistant/
