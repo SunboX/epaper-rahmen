@@ -1,11 +1,26 @@
 {
     "configurations": [
         {
-            "name": "Mac",
+            "name": "Arduino",
             "includePath": [
                 "/Users/sunbox/Library/Arduino15/packages/esp8266/tools/**",
                 "/Users/sunbox/Library/Arduino15/packages/esp8266/hardware/esp8266/2.4.2/**"
+                "/Users/sunbox/Library/Arduino15/hardware/arduino/avr/cores/arduino/",
+                "/Users/sunbox/Library/Arduino15/hardware/arduino/avr/libraries/EEPROM/",
+                "/Users/sunbox/Library/Arduino15/hardware/arduino/avr/libraries/SPI/",
+                "/Users/sunbox/Library/Arduino15/hardware/arduino/avr/libraries/SoftwareSerial/",
+                "/Users/sunbox/Library/Arduino15/hardware/arduino/avr/libraries/Wire/",
+                "/Users/sunbox/Library/Arduino15/hardware/tools/avr/avr/include/",
+                "/Users/sunbox/Library/Arduino15/hardware/tools/avr/avr/include/avr/",
+                "/Users/sunbox/Library/Arduino15/hardware/tools/avr/avr/include/compat/",
+                "/Users/sunbox/Library/Arduino15/hardware/tools/avr/avr/include/util/",
+                "/Users/sunbox/Library/Arduino15/hardware/tools/avr/lib/gcc/avr/4.*.*/include/",
+                "/Users/sunbox/Library/Arduino15/hardware/tools/avr/lib/gcc/avr/4.*.*/include-fixed/"
             ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": ""
+            },
             "forcedInclude": [],
             "macFrameworkPath": [
                 "/System/Library/Frameworks",

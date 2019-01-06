@@ -1,6 +1,4 @@
-#ifndef Chart_h
-#define Chart_h
-
+#pragma once
 
 class Chart
 {
@@ -18,6 +16,3 @@ class Chart
 //  private:
 //    GxGDEW075T8 display;
 };
-
-#endif
-
