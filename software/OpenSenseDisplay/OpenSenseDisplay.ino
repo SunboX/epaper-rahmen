@@ -5,10 +5,8 @@
 #include "24hTempHistory.h"
 #include "Display.h"
 
-const char *ssid = "blacky_nomap";
-const char *password = "SaltAndPepper101";
-//const char* ssid     = "vogtland.freifunk.net";
-//const char* password = "";
+const char* ssid     = "vogtland.freifunk.net";
+const char* password = "";
 
 const char *box_id = "5b28d3891fef04001bd7dfae";
 
